@@ -53,6 +53,10 @@ class CSVLine:
         self.image = image
 
 
+def check_if_is_in_lids(x, y, centers, range):
+    return (x - centers[0]) ** 2 + (y - centers[1]) ** 2 < range ** 2
+
+
 def get_circle_length(radius):
     return 2 * np.pi * radius
 
@@ -63,7 +67,13 @@ def show(title, image):
 
 
 def process_image(image_csv):
-    samples = np.linspace(0, np.pi, num=int(get_circle_length(image_csv.polomer_1)))
+    samples = np.linspace(0, 2*np.pi, num=360)
+
+    if PROGRAM != "Pycharm":
+        main_directory = dataroot + "iris_NEW"
+    else:
+        main_directory = "iris_NEW"
+    image_normal = main_directory + '/' + image_csv.image_name
 
     center_zr = (image_csv.center_x_1, image_csv.center_y_1)
     center_du = (image_csv.center_x_2, image_csv.center_y_2)
@@ -73,30 +83,34 @@ def process_image(image_csv):
     centerx = np.linspace(center_zr[0], center_du[0], image_csv.polomer_2 - image_csv.polomer_1)
     centery = np.linspace(center_zr[1], center_du[1], image_csv.polomer_2 - image_csv.polomer_1)
 
-    print(len(centerx))
-    print(len(centery))
+    norm = np.zeros((image_csv.polomer_2 - image_csv.polomer_1, 360))
+    black_a_whit = np.zeros((image_csv.polomer_2 - image_csv.polomer_1, 360))
+    polar = np.zeros((image_csv.polomer_2 - image_csv.polomer_1, 360))
 
-    norm = np.zeros((image_csv.polomer_2 - image_csv.polomer_1, int(get_circle_length(image_csv.polomer_1))))
-    polar = np.zeros((image_csv.polomer_2 - image_csv.polomer_1, int(get_circle_length(image_csv.polomer_1))))
     for r in range(image_csv.polomer_2 - image_csv.polomer_1):
-        for it, theta in enumerate(samples):
-            x = int((r + image_csv.polomer_1) * np.cos(theta) + centerx[r])
-            y = int((r + image_csv.polomer_1) * np.sin(theta) + centery[r])
-            print(image_csv.image[y][x][0])
-            # ak je vlavo
-            if x < image_csv.center_x_1:
-                polar[r][it] = image_csv.image[y][x][0]
-            elif x > image_csv.center_x_1:
-                polar[r][it] = image_csv.image[y][x][0]
-    show(image_csv.image_name, polar)
+        try:
+            for it, theta in enumerate(samples):
+
+                x = int((r + image_csv.polomer_1) * np.cos(theta) + centerx[r])
+                y = int((r + image_csv.polomer_1) * np.sin(theta) + centery[r])
+
+                norm[r][it] = image_normal[y][x][0]
+                if check_if_is_in_lids(x, y, center_hv, image_csv.polomer_3) and check_if_is_in_lids(x, y, center_dv,
+                                                                                                     image_csv.polomer_4):
+                    black_a_whit[r][it] = image_csv.image[y][x][0]
+                    polar[r][it] = image_normal[y][x][0]
+                else:
+                    black_a_whit[r][it] = 255
+                    polar[r][it] = 255
+            show(image_csv.image_name, norm)
+        except IndexError as e:
+            pass
 
 
-def show_image(image_csv):
-    print(image_csv.center_x_1)
-    print(image_csv.center_y_1)
-    print(image_csv.polomer_1)
+
+
+def show_image_with_circles(image_csv):
     # cv2.circle(image2, (i[0], i[1]), i[2], (0, 255, 0), 2)
-    print(image_csv.image)
     cv2.circle(image_csv.image, (image_csv.center_x_1, image_csv.center_y_1), image_csv.polomer_1, (0, 255, 0), 2)
     cv2.circle(image_csv.image, (image_csv.center_x_2, image_csv.center_y_2), image_csv.polomer_2, (0, 255, 0), 2)
     cv2.circle(image_csv.image, (image_csv.center_x_3, image_csv.center_y_3), image_csv.polomer_3, (0, 255, 0), 2)
@@ -147,7 +161,7 @@ def load_csv():
                 line_csv.constructor(line_tmp, line[1], line[2], line[3], line[4], line[5], line[6],
                                      line[7],
                                      line[8], line[9], line[10], line[11], line[12], image)
-                show_image(line_csv)
+                show_image_with_circles(line_csv)
                 csv_file[line_tmp] = line_csv
     return csv_file
 
